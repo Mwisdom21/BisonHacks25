@@ -17,16 +17,10 @@ export default function App() {
   const [icuBeds, setIcuBeds] = useState('');
   const [ppeStock, setPpeStock] = useState('');
   const [ventUsage, setVentUsage] = useState('');
-  // Chatbox input has been removed
 
   // Function to move to the next page
   const nextPage = () => {
-    // Optionally validate organization name before moving on
-    // if (orgName.trim() === '') {
-    //   alert('Please enter an organization name.');
-    //   return;
-    // }
-    setPage(prev => Math.min(prev + 1, 1)); // limiting to 2 pages (0 and 1)
+    setPage(prev => Math.min(prev + 1, 2)); // now limiting to 3 pages (0, 1, and 2)
   };
 
   const prevPage = () => {
@@ -64,7 +58,7 @@ export default function App() {
     } else if (page === 1) {
       return (
         <View style={styles.pageContent}>
-          {/* Existing content on page 2 */}
+          {/* Content for page 2 */}
           <View style={styles.roleBox}>
             <Text style={styles.roleBoxText}>{role}</Text>
           </View>
@@ -99,6 +93,18 @@ export default function App() {
           />
         </View>
       );
+    } else if (page === 2) {
+      return (
+        <View style={styles.pageContent}>
+          {/* Dashboard page */}
+          <Text style={styles.header}>Dashboard</Text>
+          <View style={styles.roleBox}>
+            <Text style={styles.roleBoxText}>{role}</Text>
+          </View>
+          <Text style={styles.orgText}>Organization: {orgName}</Text>
+          {/* Additional dashboard content can be added here */}
+        </View>
+      );
     }
   };
 
@@ -116,8 +122,8 @@ export default function App() {
             {"<"}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={nextPage} disabled={page === 1}>
-          <Text style={[styles.navButton, page === 1 && styles.disabled]}>
+        <TouchableOpacity onPress={nextPage} disabled={page === 2}>
+          <Text style={[styles.navButton, page === 2 && styles.disabled]}>
             {">"}
           </Text>
         </TouchableOpacity>
