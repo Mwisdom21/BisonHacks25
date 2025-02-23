@@ -1,0 +1,8 @@
+requests
+pandas
+openpyxl
+spacy
+matplotlib
+fastapi
+uvicorn
+kaggle
