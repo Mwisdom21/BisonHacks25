@@ -1,118 +1,117 @@
-# Import core Qiskit libraries
-from qiskit import QuantumCircuit, transpile
-# Import Qiskit Primitives
-from qiskit.primitives import Estimator
-# Import Qiskit Algorithms (NEW PATH)
-from qiskit_algorithms import NumPyEigensolver, VQE
-from qiskit_algorithms.optimizers import COBYLA
-import qiskit_algorithms
-from qiskit.quantum_info import SparsePauliOp
-from qiskit_algorithms import NumPyMinimumEigensolver
-from qiskit.circuit.library import TwoLocal
-from qiskit_algorithms.optimizers import SPSA
-# Core Qiskit imports
-from qiskit import QuantumCircuit, transpile
-# Import Quantum Simulator (Aer)
-from qiskit_aer import Aer
-# Import Quantum Primitives (For Estimation Tasks)
-from qiskit.primitives import StatevectorEstimator
-# Import Quantum Operators (For Defining Hamiltonian)
-from qiskit.quantum_info import SparsePauliOp  # Alternative to PauliSumOp
-# Import Variational Ansatz (Parameterized Quantum Circuit)
-from qiskit.circuit.library import TwoLocal
-# Import Qiskit Algorithms (VQE and Optimizers)
-from qiskit_algorithms import VQE
-from qiskit_algorithms.optimizers import COBYLA, SPSA
-# Import Numerical Computation Libraries
+from flask import Flask, request, jsonify
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-import ace_tools_open as tools
-from matplotlib.patches import Patch
+import os
+from qiskit import QuantumCircuit, transpile
+from qiskit.primitives import Estimator
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.circuit.library import TwoLocal
+from qiskit_algorithms import VQE, NumPyMinimumEigensolver
+from qiskit_algorithms.optimizers import COBYLA
 
-# --- Load Real NYC/Brooklyn Hospital Data from CSV ---
-csv_file_path = r"C:\Users\masia\OneDrive\Desktop\IBM Quantum Program\2025 NSBE presentation\Final_data_set.csv"
+# Initialize Flask app
+app = Flask(__name__)
 
-df_hospital_data = pd.read_csv(csv_file_path)
+# Store uploaded files
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Normalize the data for VQE processing (scale between -1 and 1)
-df_hospital_data["Normalized ICU Beds"] = df_hospital_data["ICU Beds"] / df_hospital_data["ICU Beds"].max()
-df_hospital_data["Normalized Ventilators"] = df_hospital_data["Ventilators"] / df_hospital_data["Ventilators"].max()
-df_hospital_data["Normalized PPE"] = df_hospital_data["PPE Distributed"] / df_hospital_data["PPE Distributed"].max()
+@app.route("/upload", methods=["POST"])
+def upload_csv():
+    """Endpoint to upload CSV file and process hospital data."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+   
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
 
-# Convert to numpy array for quantum processing
-theta_values_real = df_hospital_data[["Normalized ICU Beds", "Normalized Ventilators", "Normalized PPE"]].mean(axis=1).to_numpy()
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
 
-# --- Define Real-World Hamiltonian for Hospital Resource Allocation ---
-healthcare_op_real = SparsePauliOp.from_list(
-    [
-        ("IIIII", -1.0523),  # Constant offset term
-        ("IZIII", 0.398),  # Resource utilization efficiency term
-        ("ZIIZI", -0.398),  # Patient wait time term
-        ("ZZIII", -0.011),  # Demand-supply balance term
-        ("XXIII", 0.181),  # Entanglement term for interaction effects
-        ("IIIIX", 0.250),  # PPE allocation penalty (based on FEMA PPE data)
-        ("IIXII", -0.350),  # Ventilator optimization term
-        ("IXIII", 0.290),  # Hospital capacity fairness constraint
-    ]
-)
+    return jsonify({"message": "File uploaded successfully", "file_path": filepath})
 
-# --- Compute Classical Reference Value Using NumPyMinimumEigensolver ---
-numpy_solver = NumPyMinimumEigensolver()
-result_real = numpy_solver.compute_minimum_eigenvalue(healthcare_op_real)  # Corrected method call
-ref_value_real = result_real.eigenvalue.real  # Extract minimum eigenvalue
-print(f"Updated Classical Reference Value (Real Data): {ref_value_real:.5f}")
+def process_hospital_data(filepath):
+    """Load CSV and normalize data for Quantum VQE processing."""
+    df = pd.read_csv(filepath)
 
-# --- Running VQE Optimization ---
+    # Normalize data (scale between -1 and 1)
+    df["Normalized ICU Beds"] = df["ICU Beds"] / df["ICU Beds"].max()
+    df["Normalized Ventilators"] = df["Ventilators"] / df["Ventilators"].max()
+    df["Normalized PPE"] = df["PPE Distributed"] / df["PPE Distributed"].max()
 
-# Define quantum ansatz (TwoLocal circuit with entanglement)
-ansatz = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
+    # Convert to numpy array for quantum processing
+    theta_values = df[["Normalized ICU Beds", "Normalized Ventilators", "Normalized PPE"]].mean(axis=1).to_numpy()
 
-# Define optimizer (COBYLA for stability)
-optimizer = COBYLA(maxiter=150)
+    return df, theta_values
 
-# Instantiate VQE solver
-vqe_solver = VQE(estimator=Estimator(), ansatz=ansatz, optimizer=optimizer)
+def run_quantum_vqe():
+    """Define Hamiltonian and run VQE for hospital resource allocation."""
+    healthcare_op = SparsePauliOp.from_list([
+        ("IIIII", -1.0523),
+        ("IZIII", 0.398),
+        ("ZIIZI", -0.398),
+        ("ZZIII", -0.011),
+        ("XXIII", 0.181),
+        ("IIIIX", 0.250),
+        ("IIXII", -0.350),
+        ("IXIII", 0.290),
+    ])
 
-# Compute optimized solution using VQE
-vqe_result = vqe_solver.compute_minimum_eigenvalue(operator=healthcare_op_real)
+    # Classical Reference Value
+    numpy_solver = NumPyMinimumEigensolver()
+    result_real = numpy_solver.compute_minimum_eigenvalue(healthcare_op)
+    classical_value = result_real.eigenvalue.real
 
-# Extract optimized parameters
-optimized_theta_values = vqe_result.optimal_point
+    # Define quantum ansatz
+    ansatz = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
-# --- Visualizing VQE Results (Updated Chart) ---
+    # Define optimizer
+    optimizer = COBYLA(maxiter=150)
 
-# Define hospital names (matching real-world Brooklyn hospitals)
-hospital_names = df_hospital_data["Hospital"].tolist()
+    # Run VQE
+    vqe_solver = VQE(estimator=Estimator(), ansatz=ansatz, optimizer=optimizer)
+    vqe_result = vqe_solver.compute_minimum_eigenvalue(operator=healthcare_op)
 
-# Create a color map (dark purple for increase, light purple for decrease)
-colors = ["#4B0082" if value >= 0.9 else "#9370DB" for value in theta_values_real]
+    # Extract optimized values
+    optimized_theta_values = vqe_result.optimal_point
 
-# Generate updated bar chart
-plt.figure(figsize=(10, 6))
-plt.barh(hospital_names, theta_values_real, color=colors)
-plt.xlabel("Resource Allocation Change (θ Value)", fontsize=12, color="navy")
-plt.ylabel("Hospitals", fontsize=12, color="navy")
-plt.title("Resource Allocation Adjustments per Hospital (VQE Optimization)", fontsize=14, fontweight="bold", color="purple")
-plt.grid(axis="x", linestyle="--", alpha=0.6)
+    return classical_value, optimized_theta_values
 
-# Add labels to bars
-for index, value in enumerate(theta_values_real):
-    plt.text(value, index, f"{value:.2f}", va='center', fontsize=10)
+@app.route("/optimize", methods=["POST"])
+def optimize_resources():
+    """Endpoint to optimize hospital resources using Quantum VQE."""
+    try:
+        # Read input file path from request
+        data = request.json
+        filepath = data.get("file_path")
 
-# Add legend to the plot
+        if not filepath or not os.path.exists(filepath):
+            return jsonify({"error": "File not found. Please upload first."}), 400
 
-legend_elements = [
-    Patch(facecolor='#4B0082', label='Increased Allocation'),
-    Patch(facecolor='#9370DB', label='Reduced Allocation')
-]
-plt.legend(handles=legend_elements, loc='lower right')
+        # Process hospital data
+        df, theta_values = process_hospital_data(filepath)
 
+        # Run Quantum VQE
+        classical_value, optimized_values = run_quantum_vqe()
 
-# Display the updated DataFrame to the user
-import ace_tools_open as tools
-tools.display_dataframe_to_user(name="Updated VQE Resource Allocation Adjustments", dataframe=df_hospital_data)
+        # Store updated values in DataFrame
+        df["Optimized Allocation"] = optimized_values[: len(df)]
 
-# Show the plot
-plt.show()
+        # Save updated data
+        updated_filepath = os.path.join(UPLOAD_FOLDER, "optimized_" + os.path.basename(filepath))
+        df.to_csv(updated_filepath, index=False)
+
+        return jsonify({
+            "classical_reference_value": classical_value,
+            "optimized_allocation": optimized_values.tolist(),
+            "updated_file_path": updated_filepath
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
 
