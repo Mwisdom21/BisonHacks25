@@ -1,3 +1,5 @@
+qiskit
+qiskit-aer
 requests
 pandas
 openpyxl
