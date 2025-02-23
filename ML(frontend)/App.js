@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   SafeAreaView,
@@ -6,8 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Dimensions,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { LineChart } from 'react-native-chart-kit';
 
 export default function App() {
   const [role, setRole] = useState('Healthcare Admin');
@@ -20,6 +22,11 @@ export default function App() {
   // State variable for dashboard active tab
   const [activeTab, setActiveTab] = useState('tab1');
 
+  // State variables for chart data
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   // Navigation functions
   const nextPage = () => {
     setPage(prev => Math.min(prev + 1, 2)); // Pages: 0, 1, and 2
@@ -28,6 +35,25 @@ export default function App() {
   const prevPage = () => {
     setPage(prev => Math.max(prev - 1, 0));
   };
+
+  // Fetch chart data when on page 2 and activeTab is "tab2"
+  useEffect(() => {
+    if (page === 2 && activeTab === 'tab2') {
+      setLoading(true);
+      fetch('http://127.0.0.1:5000/quant')
+        .then(response => response.json())
+        .then(data => {
+          // Expecting API response format: { data: [ ... ] }
+          setChartData(data.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setError('Error fetching chart data');
+          setLoading(false);
+        });
+    }
+  }, [page, activeTab]);
 
   // Render different pages based on the current page state
   const renderPage = () => {
@@ -122,7 +148,43 @@ export default function App() {
               <Text style={styles.tabContentText}>MedDash</Text>
             )}
             {activeTab === 'tab2' && (
-              <Text style={styles.tabContentText}>Network Optimization</Text>
+              <>
+                {loading ? (
+                  <Text style={styles.tabContentText}>Loading chart data...</Text>
+                ) : error ? (
+                  <Text style={styles.tabContentText}>{error}</Text>
+                ) : (
+                  <LineChart
+                    data={{
+                      labels: chartData.map((_, index) => `Label ${index + 1}`),
+                      datasets: [{ data: chartData }],
+                    }}
+                    width={Dimensions.get('window').width - 48} // subtracting margins
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: '#e26a00',
+                      backgroundGradientFrom: '#fb8c00',
+                      backgroundGradientTo: '#ffa726',
+                      decimalPlaces: 2,
+                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      style: {
+                        borderRadius: 16,
+                      },
+                      propsForDots: {
+                        r: '6',
+                        strokeWidth: '2',
+                        stroke: '#ffa726',
+                      },
+                    }}
+                    bezier
+                    style={{
+                      marginVertical: 8,
+                      borderRadius: 16,
+                    }}
+                  />
+                )}
+              </>
             )}
           </View>
           {/* Bottom profile info */}
@@ -293,3 +355,4 @@ const styles = StyleSheet.create({
     color: '#555',
   },
 });
+
