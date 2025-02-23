@@ -17,16 +17,19 @@ export default function App() {
   const [icuBeds, setIcuBeds] = useState('');
   const [ppeStock, setPpeStock] = useState('');
   const [ventUsage, setVentUsage] = useState('');
+  // State variable for dashboard active tab
+  const [activeTab, setActiveTab] = useState('tab1');
 
-  // Function to move to the next page
+  // Navigation functions
   const nextPage = () => {
-    setPage(prev => Math.min(prev + 1, 2)); // now limiting to 3 pages (0, 1, and 2)
+    setPage(prev => Math.min(prev + 1, 2)); // Pages: 0, 1, and 2
   };
 
   const prevPage = () => {
     setPage(prev => Math.max(prev - 1, 0));
   };
 
+  // Render different pages based on the current page state
   const renderPage = () => {
     if (page === 0) {
       return (
@@ -58,13 +61,13 @@ export default function App() {
     } else if (page === 1) {
       return (
         <View style={styles.pageContent}>
-          {/* Content for page 2 */}
+          {/* Page 2: Additional Details */}
           <View style={styles.roleBox}>
             <Text style={styles.roleBoxText}>{role}</Text>
           </View>
           <Text style={styles.orgText}>Organization: {orgName}</Text>
 
-          {/* Additional fields on page 2 */}
+          {/* Additional Fields */}
           <Text style={styles.label}>ICU Beds</Text>
           <TextInput
             style={styles.input}
@@ -95,14 +98,39 @@ export default function App() {
       );
     } else if (page === 2) {
       return (
-        <View style={styles.pageContent}>
-          {/* Dashboard page */}
-          <Text style={styles.header}>Dashboard</Text>
-          <View style={styles.roleBox}>
-            <Text style={styles.roleBoxText}>{role}</Text>
+        <View style={styles.dashboardContainer}>
+          {/* Dashboard Title */}
+          <Text style={styles.dashboardTitle}>Dashboard</Text>
+          {/* Tabs container */}
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'tab1' && styles.activeTab]}
+              onPress={() => setActiveTab('tab1')}
+            >
+              <Text style={styles.tabText}>MedDash</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'tab2' && styles.activeTab]}
+              onPress={() => setActiveTab('tab2')}
+            >
+              <Text style={styles.tabText}>Network Optimization</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.orgText}>Organization: {orgName}</Text>
-          {/* Additional dashboard content can be added here */}
+          {/* Tab content */}
+          <View style={styles.tabContent}>
+            {activeTab === 'tab1' && (
+              <Text style={styles.tabContentText}>MedDash</Text>
+            )}
+            {activeTab === 'tab2' && (
+              <Text style={styles.tabContentText}>Network Optimization</Text>
+            )}
+          </View>
+          {/* Bottom profile info */}
+          <View style={styles.bottomProfile}>
+            <Text style={styles.profileText}>
+              {role} | {orgName}
+            </Text>
+          </View>
         </View>
       );
     }
@@ -115,7 +143,6 @@ export default function App() {
         {page === 0 && <Text style={styles.header}>Medalytics</Text>}
         {renderPage()}
       </View>
-
       <View style={styles.navContainer}>
         <TouchableOpacity onPress={prevPage} disabled={page === 0}>
           <Text style={[styles.navButton, page === 0 && styles.disabled]}>
@@ -221,5 +248,48 @@ const styles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
     color: '#000',
+  },
+  dashboardContainer: {
+    flex: 1,
+    paddingTop: 20,
+    paddingHorizontal: 24,
+  },
+  dashboardTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+  },
+  tab: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#000',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  tabContent: {
+    alignItems: 'center',
+  },
+  tabContentText: {
+    fontSize: 18,
+    marginTop: 20,
+  },
+  bottomProfile: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  profileText: {
+    fontSize: 16,
+    color: '#555',
   },
 });
