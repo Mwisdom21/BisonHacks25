@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Text,
   SafeAreaView,
@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Keyboard,
   Dimensions,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -19,42 +20,17 @@ export default function App() {
   const [ppeStock, setPpeStock] = useState('');
   const [ventUsage, setVentUsage] = useState('');
   const [activeTab, setActiveTab] = useState('tab1');
-  const [chartData, setChartData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Navigation functions
   const nextPage = () => {
-    setPage(prev => Math.min(prev + 1, 3)); // Allow navigation to page 3
+    Keyboard.dismiss();
+    setPage((prev) => Math.min(prev + 1, 2));
   };
 
   const prevPage = () => {
-    setPage(prev => Math.max(prev - 1, 0));
+    Keyboard.dismiss();
+    setPage((prev) => Math.max(prev - 1, 0));
   };
 
-  const restartForm = () => {
-    setPage(0);
-  };
-
-  // Fetch chart data when on page 2 and activeTab is "tab2"
-  useEffect(() => {
-    if (page === 2 && activeTab === 'tab2') {
-      setLoading(true);
-      fetch('http://127.0.0.1:5000/quant')
-        .then(response => response.json())
-        .then(data => {
-          setChartData(data.data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setError('Error fetching chart data');
-          setLoading(false);
-        });
-    }
-  }, [page, activeTab]);
-
-  // Render pages based on the current page state
   const renderPage = () => {
     if (page === 0) {
       return (
@@ -72,8 +48,7 @@ export default function App() {
               selectedValue={role}
               style={styles.picker}
               itemStyle={styles.pickerItem}
-              onValueChange={(itemValue) => setRole(itemValue)}
-            >
+              onValueChange={(itemValue) => setRole(itemValue)}>
               <Picker.Item label="Healthcare Admin" value="Healthcare Admin" />
               <Picker.Item label="Govt. Official" value="Govt. Official" />
             </Picker>
@@ -87,7 +62,6 @@ export default function App() {
             <Text style={styles.roleBoxText}>{role}</Text>
           </View>
           <Text style={styles.orgText}>Organization: {orgName}</Text>
-
           <Text style={styles.label}>ICU Beds</Text>
           <TextInput
             style={styles.input}
@@ -96,7 +70,6 @@ export default function App() {
             onChangeText={setIcuBeds}
             keyboardType="numeric"
           />
-
           <Text style={styles.label}>PPE Stock</Text>
           <TextInput
             style={styles.input}
@@ -105,7 +78,6 @@ export default function App() {
             onChangeText={setPpeStock}
             keyboardType="numeric"
           />
-
           <Text style={styles.label}>Ventilator Usage</Text>
           <TextInput
             style={styles.input}
@@ -123,59 +95,49 @@ export default function App() {
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'tab1' && styles.activeTab]}
-              onPress={() => setActiveTab('tab1')}
-            >
+              onPress={() => setActiveTab('tab1')}>
               <Text style={styles.tabText}>MedDash</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'tab2' && styles.activeTab]}
-              onPress={() => setActiveTab('tab2')}
-            >
+              onPress={() => setActiveTab('tab2')}>
               <Text style={styles.tabText}>Network Optimization</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.tabContent}>
             {activeTab === 'tab1' && (
-              <Text style={styles.tabContentText}>MedDash</Text>
+              <View>
+                <Text style={styles.tabContentText}>MedDash Insights</Text>
+                <Text style={styles.insightText}>ICU Beds Available: {icuBeds || 'N/A'}</Text>
+                <Text style={styles.insightText}>PPE Stock: {ppeStock || 'N/A'}</Text>
+                <Text style={styles.insightText}>Ventilator Usage: {ventUsage || 'N/A'}</Text>
+              </View>
             )}
             {activeTab === 'tab2' && (
-              <>
-                {loading ? (
-                  <Text style={styles.tabContentText}>Loading chart data...</Text>
-                ) : error ? (
-                  <Text style={styles.tabContentText}>{error}</Text>
-                ) : (
-                  <LineChart
-                    data={{
-                      labels: chartData.map((_, index) => `Label ${index + 1}`),
-                      datasets: [{ data: chartData }],
-                    }}
-                    width={Dimensions.get('window').width - 48}
-                    height={220}
-                    chartConfig={{
-                      backgroundColor: '#e26a00',
-                      backgroundGradientFrom: '#fb8c00',
-                      backgroundGradientTo: '#ffa726',
-                      decimalPlaces: 2,
-                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 16,
-                      },
-                      propsForDots: {
-                        r: '6',
-                        strokeWidth: '2',
-                        stroke: '#ffa726',
-                      },
-                    }}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16,
-                    }}
-                  />
-                )}
-              </>
+              <LineChart
+                data={{
+                  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                  datasets: [
+                    {
+                      data: [20, 45, 28, 80, 99, 43],
+                    },
+                  ],
+                }}
+                width={Dimensions.get('window').width - 48}
+                height={220}
+                chartConfig={{
+                  backgroundColor: '#e26a00',
+                  backgroundGradientFrom: '#fb8c00',
+                  backgroundGradientTo: '#ffa726',
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: { borderRadius: 16 },
+                }}
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 16,
+                }}
+              />
             )}
           </View>
           <View style={styles.bottomProfile}>
@@ -183,18 +145,6 @@ export default function App() {
               {role} | {orgName}
             </Text>
           </View>
-        </View>
-      );
-    } else if (page === 3) {
-      return (
-        <View style={styles.pageContent}>
-          <Text style={styles.dashboardTitle}>Thank You!</Text>
-          <Text style={styles.tabContentText}>
-            You've successfully completed the form.
-          </Text>
-          <TouchableOpacity onPress={restartForm}>
-            <Text style={styles.navButton}>Restart</Text>
-          </TouchableOpacity>
         </View>
       );
     }
@@ -209,12 +159,12 @@ export default function App() {
       <View style={styles.navContainer}>
         <TouchableOpacity onPress={prevPage} disabled={page === 0}>
           <Text style={[styles.navButton, page === 0 && styles.disabled]}>
-            {"<"}
+            {'<'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={nextPage} disabled={page === 3}>
-          <Text style={[styles.navButton, page === 3 && styles.disabled]}>
-            {">"}
+        <TouchableOpacity onPress={nextPage} disabled={page === 2}>
+          <Text style={[styles.navButton, page === 2 && styles.disabled]}>
+            {'>'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -222,4 +172,142 @@ export default function App() {
   );
 }
 
-// Keep your existing styles here
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ecf0f1',
+    padding: 10,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  header: {
+    fontSize: 50,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 24,
+  },
+  label: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 24,
+    marginTop: 24,
+    textAlign: 'center',
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginHorizontal: 24,
+    marginVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  roleContainer: {
+    marginHorizontal: 24,
+    marginTop: 24,
+  },
+  roleLabel: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#000',
+    marginBottom: 5,
+  },
+  picker: {
+    height: 50,
+    color: '#000',
+  },
+  pickerItem: {
+    fontSize: 18,
+    color: '#000',
+  },
+  navContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 24,
+    marginBottom: 24,
+  },
+  navButton: {
+    fontSize: 40,
+    color: '#000',
+  },
+  disabled: {
+    color: 'gray',
+  },
+  pageContent: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  roleBox: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    marginHorizontal: 24,
+    marginTop: 15,
+    alignItems: 'center',
+    width: '80%',
+  },
+  roleBoxText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  orgText: {
+    fontSize: 20,
+    marginTop: 12,
+    textAlign: 'center',
+    color: '#000',
+  },
+  dashboardContainer: {
+    flex: 1,
+    paddingTop: 20,
+    paddingHorizontal: 24,
+  },
+  dashboardTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+  },
+  tab: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#000',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  tabContent: {
+    alignItems: 'center',
+  },
+  tabContentText: {
+    fontSize: 18,
+    marginTop: 20,
+  },
+  insightText: {
+    fontSize: 16,
+    marginTop: 10,
+  },
+  bottomProfile: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  profileText: {
+    fontSize: 16,
+    color: '#555',
+  },
+});
+
