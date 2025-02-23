@@ -15,25 +15,25 @@ export default function App() {
   const [role, setRole] = useState('Healthcare Admin');
   const [orgName, setOrgName] = useState('');
   const [page, setPage] = useState(0);
-  // State variables for additional fields on page 2
   const [icuBeds, setIcuBeds] = useState('');
   const [ppeStock, setPpeStock] = useState('');
   const [ventUsage, setVentUsage] = useState('');
-  // State variable for dashboard active tab
   const [activeTab, setActiveTab] = useState('tab1');
-
-  // State variables for chart data
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Navigation functions
   const nextPage = () => {
-    setPage(prev => Math.min(prev + 1, 2)); // Pages: 0, 1, and 2
+    setPage(prev => Math.min(prev + 1, 3)); // Allow navigation to page 3
   };
 
   const prevPage = () => {
     setPage(prev => Math.max(prev - 1, 0));
+  };
+
+  const restartForm = () => {
+    setPage(0);
   };
 
   // Fetch chart data when on page 2 and activeTab is "tab2"
@@ -43,7 +43,6 @@ export default function App() {
       fetch('http://127.0.0.1:5000/quant')
         .then(response => response.json())
         .then(data => {
-          // Expecting API response format: { data: [ ... ] }
           setChartData(data.data);
           setLoading(false);
         })
@@ -55,12 +54,11 @@ export default function App() {
     }
   }, [page, activeTab]);
 
-  // Render different pages based on the current page state
+  // Render pages based on the current page state
   const renderPage = () => {
     if (page === 0) {
       return (
         <>
-          {/* Organization Name Section */}
           <Text style={styles.label}>Organization Name</Text>
           <TextInput
             style={styles.input}
@@ -68,8 +66,6 @@ export default function App() {
             value={orgName}
             onChangeText={setOrgName}
           />
-
-          {/* Role Section */}
           <View style={styles.roleContainer}>
             <Text style={styles.roleLabel}>Role</Text>
             <Picker
@@ -87,13 +83,11 @@ export default function App() {
     } else if (page === 1) {
       return (
         <View style={styles.pageContent}>
-          {/* Page 2: Additional Details */}
           <View style={styles.roleBox}>
             <Text style={styles.roleBoxText}>{role}</Text>
           </View>
           <Text style={styles.orgText}>Organization: {orgName}</Text>
 
-          {/* Additional Fields */}
           <Text style={styles.label}>ICU Beds</Text>
           <TextInput
             style={styles.input}
@@ -125,9 +119,7 @@ export default function App() {
     } else if (page === 2) {
       return (
         <View style={styles.dashboardContainer}>
-          {/* Dashboard Title */}
           <Text style={styles.dashboardTitle}>Dashboard</Text>
-          {/* Tabs container */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'tab1' && styles.activeTab]}
@@ -142,7 +134,6 @@ export default function App() {
               <Text style={styles.tabText}>Network Optimization</Text>
             </TouchableOpacity>
           </View>
-          {/* Tab content */}
           <View style={styles.tabContent}>
             {activeTab === 'tab1' && (
               <Text style={styles.tabContentText}>MedDash</Text>
@@ -159,7 +150,7 @@ export default function App() {
                       labels: chartData.map((_, index) => `Label ${index + 1}`),
                       datasets: [{ data: chartData }],
                     }}
-                    width={Dimensions.get('window').width - 48} // subtracting margins
+                    width={Dimensions.get('window').width - 48}
                     height={220}
                     chartConfig={{
                       backgroundColor: '#e26a00',
@@ -187,12 +178,23 @@ export default function App() {
               </>
             )}
           </View>
-          {/* Bottom profile info */}
           <View style={styles.bottomProfile}>
             <Text style={styles.profileText}>
               {role} | {orgName}
             </Text>
           </View>
+        </View>
+      );
+    } else if (page === 3) {
+      return (
+        <View style={styles.pageContent}>
+          <Text style={styles.dashboardTitle}>Thank You!</Text>
+          <Text style={styles.tabContentText}>
+            You've successfully completed the form.
+          </Text>
+          <TouchableOpacity onPress={restartForm}>
+            <Text style={styles.navButton}>Restart</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -201,7 +203,6 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* "Medalytics" title appears only on page 0 */}
         {page === 0 && <Text style={styles.header}>Medalytics</Text>}
         {renderPage()}
       </View>
@@ -211,8 +212,8 @@ export default function App() {
             {"<"}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={nextPage} disabled={page === 2}>
-          <Text style={[styles.navButton, page === 2 && styles.disabled]}>
+        <TouchableOpacity onPress={nextPage} disabled={page === 3}>
+          <Text style={[styles.navButton, page === 3 && styles.disabled]}>
             {">"}
           </Text>
         </TouchableOpacity>
@@ -221,138 +222,4 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ecf0f1',
-    padding: 10,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'flex-start',
-  },
-  header: {
-    fontSize: 50,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 24,
-  },
-  label: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginHorizontal: 24,
-    marginTop: 24,
-    textAlign: 'center',
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginHorizontal: 24,
-    marginVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-  },
-  roleContainer: {
-    marginHorizontal: 24,
-    marginTop: 24,
-  },
-  roleLabel: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#000',
-    marginBottom: 5,
-  },
-  picker: {
-    height: 50,
-    color: '#000',
-  },
-  pickerItem: {
-    fontSize: 18,
-    color: '#000',
-  },
-  navContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 24,
-    marginBottom: 24,
-  },
-  navButton: {
-    fontSize: 40,
-    color: '#000',
-  },
-  disabled: {
-    color: 'gray',
-  },
-  pageContent: {
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  roleBox: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginHorizontal: 24,
-    marginTop: 15,
-    alignItems: 'center',
-    width: '80%',
-  },
-  roleBoxText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  orgText: {
-    fontSize: 20,
-    marginTop: 12,
-    textAlign: 'center',
-    color: '#000',
-  },
-  dashboardContainer: {
-    flex: 1,
-    paddingTop: 20,
-    paddingHorizontal: 24,
-  },
-  dashboardTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 20,
-  },
-  tab: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#000',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  tabContent: {
-    alignItems: 'center',
-  },
-  tabContentText: {
-    fontSize: 18,
-    marginTop: 20,
-  },
-  bottomProfile: {
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  profileText: {
-    fontSize: 16,
-    color: '#555',
-  },
-});
-
+// Keep your existing styles here
